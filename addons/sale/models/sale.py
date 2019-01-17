@@ -661,9 +661,10 @@ class SaleOrder(models.Model):
             self.force_quotation_send()
 
         # create an analytic account if at least an expense product
-        if any([expense_policy != 'no' for expense_policy in self.order_line.mapped('product_id.expense_policy')]):
-            if not self.analytic_account_id:
-                self._create_analytic_account()
+        for order in self:
+            if any([expense_policy != 'no' for expense_policy in order.order_line.mapped('product_id.expense_policy')]):
+                if not order.analytic_account_id:
+                    order._create_analytic_account()
 
         return True
 
@@ -871,21 +872,6 @@ class SaleOrder(models.Model):
     def _get_report_base_filename(self):
         self.ensure_one()
         return '%s %s' % (self.type_name, self.name)
-
-    @api.multi
-    def get_access_action(self, access_uid=None):
-        """ Instead of the classic form view, redirect to the online quote if it exists. """
-        self.ensure_one()
-        user = access_uid and self.env['res.users'].sudo().browse(access_uid) or self.env.user
-
-        if not self.sale_order_template_id or (not user.share and not self.env.context.get('force_website')):
-            return super(SaleOrder, self).get_access_action(access_uid)
-        return {
-            'type': 'ir.actions.act_url',
-            'url': self.get_portal_url(),
-            'target': 'self',
-            'res_id': self.id,
-        }
 
     def _get_share_url(self, redirect=False, signup_partner=False, pid=None):
         self.ensure_one()
