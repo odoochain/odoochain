@@ -1,0 +1,60 @@
+<odoo>
+  <data>
+    <!-- explicit list view definition -->
+    <!--
+    <record model="ir.ui.view" id="istock_data.list">
+      <field name="name">istock_data list</field>
+      <field name="model">istock_data.istock_data</field>
+      <field name="arch" type="xml">
+        <tree>
+          <field name="name"/>
+          <field name="value"/>
+          <field name="value2"/>
+        </tree>
+      </field>
+    </record>
+    -->
+
+    <!-- actions opening views on models -->
+    <!--
+    <record model="ir.actions.act_window" id="istock_data.action_window">
+      <field name="name">istock_data window</field>
+      <field name="res_model">istock_data.istock_data</field>
+      <field name="view_mode">tree,form</field>
+    </record>
+    -->
+
+    <!-- server action to the one above -->
+    <!--
+    <record model="ir.actions.server" id="istock_data.action_server">
+      <field name="name">istock_data server</field>
+      <field name="model_id" ref="model_istock_data_istock_data"/>
+      <field name="state">code</field>
+      <field name="code">
+        action = {
+          "type": "ir.actions.act_window",
+          "view_mode": "tree,form",
+          "res_model": self._name,
+        }
+      </field>
+    </record>
+    -->
+
+    <!-- Top menu item -->
+    <!--
+    <menuitem name="istock_data" id="istock_data.menu_root"/>
+    -->
+    <!-- menu categories -->
+    <!--
+    <menuitem name="Menu 1" id="istock_data.menu_1" parent="istock_data.menu_root"/>
+    <menuitem name="Menu 2" id="istock_data.menu_2" parent="istock_data.menu_root"/>
+    -->
+    <!-- actions -->
+    <!--
+    <menuitem name="List" id="istock_data.menu_1_list" parent="istock_data.menu_1"
+              action="istock_data.action_window"/>
+    <menuitem name="Server to list" id="istock_data" parent="istock_data.menu_2"
+              action="istock_data.action_server"/>
+    -->
+  </data>
+</odoo>
