@@ -15,6 +15,7 @@ $o-mm-def-color-eta: #87a6b5;
 $o-mm-def-body-width    : 600px;
 $o-mm-def-body-bobile   : 480px;
 $o-mm-def-b-radius      : 2px;
+$o-mm-def-body-bg       : $o-mm-def-color-beta;
 
 $o-mm-def-font          : -apple-system, "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
 $o-mm-def-text-color    : $o-mm-def-color-delta;
@@ -23,23 +24,14 @@ $o-mm-def-btn-bg        : $o-mm-def-color-gamma;
 $o-mm-def-btn-text      : $o-mm-def-color-beta;
 
 // ===== Colors =====
-.bg-beta {
-    background-color: $o-mm-def-color-zeta;
-    color:  $o-mm-def-color-beta;
-}
-.text-beta {
-    color: $o-mm-def-color-zeta;
-}
-.bg-delta {
-    background-color: $o-mm-def-color-eta;
-}
-.bg-gray-lighter {
-    background-color: $o-mm-def-color-alpha;
-}
+@include bg-variant(".bg-beta", $o-mm-def-color-zeta);
+@include text-emphasis-variant(".text-beta", $o-mm-def-color-zeta);
+@include bg-variant(".bg-delta", $o-mm-def-color-eta);
+@include bg-variant(".bg-gray-lighter", $o-mm-def-color-alpha);
 
-td {
+td:not([align]) {
     // Default browser style but needed so that alignment works on some mail
-    // clients (see transcoder)
+    // clients (see convert_inline)
     text-align: inherit;
 }
 
@@ -54,17 +46,16 @@ td {
 
     // Forces on <p/> and <hx/> elements as several mail clients does not
     // correctly inherit font properties
-    &, p {
+    &, p, ol {
         font-size: 14px; // force bootstrap default
     }
-    &, p, h1, h2, h3, h4, h5, h6 {
+    &, p, h1, h2, h3, h4, h5, h6, ol {
         font-family: $o-mm-def-font;
         color: lighten($o-mm-def-text-color, 20%);
     }
 
     > .o_mail_wrapper {
         width: 100%;
-        margin: 24px 0;
         border-collapse: separate; // Allow the first and last td to have the
                                    // same width
 

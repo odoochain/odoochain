@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo.addons.account.tests.account_test_classes import AccountingTestCase
+from odoo.addons.account.tests.common import AccountTestCommon
 
 import odoo.tests
 from odoo import fields
@@ -8,7 +8,7 @@ from datetime import datetime
 
 
 @odoo.tests.tagged('post_install', '-at_install')
-class TestFiscalPosition(AccountingTestCase):
+class TestFiscalPosition(AccountTestCommon):
 
     def check_compute_fiscal_year(self, company, date, expected_date_from, expected_date_to):
         '''Compute the fiscal year at a certain date for the company passed as parameter.
@@ -28,7 +28,7 @@ class TestFiscalPosition(AccountingTestCase):
         '''Basic case with a fiscal year xxxx-01-01 - xxxx-12-31.'''
         company = self.env.ref('base.main_company')
         company.fiscalyear_last_day = 31
-        company.fiscalyear_last_month = 12
+        company.fiscalyear_last_month = '12'
 
         self.check_compute_fiscal_year(
             company,
@@ -48,7 +48,7 @@ class TestFiscalPosition(AccountingTestCase):
         '''Case with a leap year ending the 29 February.'''
         company = self.env.ref('base.main_company')
         company.fiscalyear_last_day = 29
-        company.fiscalyear_last_month = 2
+        company.fiscalyear_last_month = '2'
 
         self.check_compute_fiscal_year(
             company,
@@ -68,12 +68,19 @@ class TestFiscalPosition(AccountingTestCase):
         '''Case with a leap year ending the 28 February.'''
         company = self.env.ref('base.main_company')
         company.fiscalyear_last_day = 28
-        company.fiscalyear_last_month = 2
+        company.fiscalyear_last_month = '2'
+
+        self.check_compute_fiscal_year(
+            company,
+            '2016-02-29',
+            '2015-03-01',
+            '2016-02-29',
+        )
 
         self.check_compute_fiscal_year(
             company,
             '2016-03-01',
-            '2016-02-29',
+            '2016-03-01',
             '2017-02-28',
         )
 
@@ -81,7 +88,7 @@ class TestFiscalPosition(AccountingTestCase):
         '''Case with custom fiscal years.'''
         company = self.env.ref('base.main_company')
         company.fiscalyear_last_day = 31
-        company.fiscalyear_last_month = 12
+        company.fiscalyear_last_month = '12'
 
         # Create custom fiscal year covering the 6 first months of 2017.
         self.env['account.fiscal.year'].create({

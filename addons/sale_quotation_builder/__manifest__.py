@@ -3,7 +3,7 @@
 
 {
     'name': 'Quotation Builder',
-    'category': 'Sales',
+    'category': 'Sales/Sales',
     'summary': 'Build great quotation templates',
     'website': 'https://www.odoo.com/page/quote-builder',
     'version': '1.0',
@@ -13,6 +13,7 @@
         'data/sale_order_template_data.xml',
         'views/sale_portal_templates.xml',
         'views/sale_order_template_views.xml',
+        'views/res_config_settings_views.xml',
         'views/sale_order_views.xml',
     ],
     'installable': True,

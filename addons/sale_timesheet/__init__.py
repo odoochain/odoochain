@@ -3,9 +3,9 @@
 
 from odoo import api, SUPERUSER_ID
 
+from . import controllers
 from . import models
 from . import wizard
-from . import controllers
 from . import report
 
 def uninstall_hook(cr, registry):

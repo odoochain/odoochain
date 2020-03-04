@@ -1,48 +1,83 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from dateutil.relativedelta import relativedelta
+from odoo import api, fields, models
 
-from odoo import api, fields, models, tools, _
-
-from odoo.addons import decimal_precision as dp
+from odoo.tools import formatLang
 
 
 class LunchProductCategory(models.Model):
     """ Category of the product such as pizza, sandwich, pasta, chinese, burger... """
     _name = 'lunch.product.category'
+    _inherit = 'image.mixin'
     _description = 'Lunch Product Category'
 
-    name = fields.Char('Product Category', required=True)
-    topping_ids = fields.One2many('lunch.topping', 'category_id')
+    name = fields.Char('Product Category', required=True, translate=True)
+    company_id = fields.Many2one('res.company', default=lambda self: self.env.company)
+    currency_id = fields.Many2one('res.currency', related='company_id.currency_id')
+    topping_label_1 = fields.Char('Extra 1 Label', required=True, default='Extras')
+    topping_label_2 = fields.Char('Extra 2 Label', required=True, default='Beverages')
+    topping_label_3 = fields.Char('Extra 3 Label', required=True, default='Extra Label 3')
+    topping_ids_1 = fields.One2many('lunch.topping', 'category_id', domain=[('topping_category', '=', 1)], ondelete='cascade')
+    topping_ids_2 = fields.One2many('lunch.topping', 'category_id', domain=[('topping_category', '=', 2)], ondelete='cascade')
+    topping_ids_3 = fields.One2many('lunch.topping', 'category_id', domain=[('topping_category', '=', 3)], ondelete='cascade')
+    topping_quantity_1 = fields.Selection([
+        ('0_more', 'None or More'),
+        ('1_more', 'One or More'),
+        ('1', 'Only One')], 'Extra 1 Quantity', default='0_more', required=True)
+    topping_quantity_2 = fields.Selection([
+        ('0_more', 'None or More'),
+        ('1_more', 'One or More'),
+        ('1', 'Only One')], 'Extra 2 Quantity', default='0_more', required=True)
+    topping_quantity_3 = fields.Selection([
+        ('0_more', 'None or More'),
+        ('1_more', 'One or More'),
+        ('1', 'Only One')], 'Extra 3 Quantity', default='0_more', required=True)
+    product_count = fields.Integer(compute='_compute_product_count', help="The number of products related to this category")
 
+    def _compute_product_count(self):
+        product_data = self.env['lunch.product'].read_group([('category_id', 'in', self.ids)], ['category_id'], ['category_id'])
+        data = {product['category_id'][0]: product['category_id_count'] for product in product_data}
+        for category in self:
+            category.product_count = data.get(category.id, 0)
 
-class LunchToppingType(models.Model):
-    """"""
-    _name = 'lunch.topping.type'
-    _description = 'Lunch Topping Type'
+    @api.model
+    def create(self, vals):
+        for topping in vals.get('topping_ids_2', []):
+            topping[2].update({'topping_category': 2})
+        for topping in vals.get('topping_ids_3', []):
+            topping[2].update({'topping_category': 3})
+        return super(LunchProductCategory, self).create(vals)
 
-    name = fields.Char('Name', required=True)
+    def write(self, vals):
+        for topping in vals.get('topping_ids_2', []):
+            topping_values = topping[2]
+            if topping_values:
+                topping_values.update({'topping_category': 2})
+        for topping in vals.get('topping_ids_3', []):
+            topping_values = topping[2]
+            if topping_values:
+                topping_values.update({'topping_category': 3})
+        return super(LunchProductCategory, self).write(vals)
 
 
 class LunchTopping(models.Model):
     """"""
     _name = 'lunch.topping'
-    _description = 'Lunch Toppings'
+    _description = 'Lunch Extras'
 
     name = fields.Char('Name', required=True)
-    price = fields.Float('Price', digits=dp.get_precision('Account'), required=True)
+    company_id = fields.Many2one('res.company', default=lambda self: self.env.company)
+    currency_id = fields.Many2one('res.currency', related='company_id.currency_id')
+    price = fields.Float('Price', digits='Account', required=True)
     category_id = fields.Many2one('lunch.product.category')
-    type_id = fields.Many2one('lunch.topping.type')
+    topping_category = fields.Integer('Topping Category', help="This field is a technical field", required=True, default=1)
 
     def name_get(self):
-        currency_id = self.env.user.company_id.currency_id
+        currency_id = self.env.company.currency_id
         res = dict(super(LunchTopping, self).name_get())
         for topping in self:
-            if currency_id.position == 'before':
-                price = '%s %s' % (currency_id.symbol, topping.price)
-            else:
-                price = '%s %s' % (topping.price, currency_id.symbol)
+            price = formatLang(self.env, topping.price, currency_obj=currency_id)
             res[topping.id] = '%s %s' % (topping.name, price)
         return list(res.items())
 
@@ -51,52 +86,18 @@ class LunchProduct(models.Model):
     """ Products available to order. A product is linked to a specific vendor. """
     _name = 'lunch.product'
     _description = 'Lunch Product'
+    _inherit = 'image.mixin'
+    _order = 'name'
 
-    name = fields.Char('Name', required=True)
+    name = fields.Char('Product Name', required=True, translate=True)
     category_id = fields.Many2one('lunch.product.category', 'Product Category', required=True)
-    description = fields.Text('Description')
-    price = fields.Float('Price', digits=dp.get_precision('Account'), required=True)
+    description = fields.Text('Description', translate=True)
+    price = fields.Float('Price', digits='Account', required=True)
     supplier_id = fields.Many2one('lunch.supplier', 'Vendor', required=True)
     active = fields.Boolean(default=True)
 
-    # image: all image fields are base64 encoded and PIL-supported
-    image = fields.Binary(
-        "Image",
-        help="This field holds the image used as image for the product, limited to 1024x1024px.")
-    image_medium = fields.Binary(
-        "Medium-sized image",
-        help="Medium-sized image of the product. It is automatically "
-             "resized as a 128x128px image, with aspect ratio preserved, "
-             "only when the image exceeds one of those sizes. Use this field in form views or some kanban views.")
-    image_small = fields.Binary(
-        "Small-sized image",
-        help="Small-sized image of the product. It is automatically "
-             "resized as a 64x64px image, with aspect ratio preserved. "
-             "Use this field anywhere a small image is required.")
+    company_id = fields.Many2one('res.company', related='supplier_id.company_id', store=True)
+    currency_id = fields.Many2one('res.currency', related='company_id.currency_id')
 
-    already_ordered = fields.Boolean('Has Already Been Ordered', compute='_compute_already_ordered')
-
-    @api.model
-    def search_read(self, domain=None, fields=None, offset=0, limit=None, order=None):
-        res = super(LunchProduct, self).search_read(domain, fields, offset, limit, order)
-
-        if not order and 'already_ordered' in fields:
-            res = sorted(res, key=lambda x: x['already_ordered'], reverse=True)
-
-        return res
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        for values in vals_list:
-            tools.image_resize_images(values)
-        return super(LunchProduct, self).create(vals_list)
-
-    def write(self, values):
-        tools.image_resize_images(values)
-        return super(LunchProduct, self).write(values)
-
-    def _compute_already_ordered(self):
-        last_ordered = fields.Date.today() - relativedelta(weeks=2)
-        for product in self:
-            product.already_ordered = bool(self.env['lunch.order.line'].search_count(
-                [('product_id', '=', product.id), ('date', '>=', last_ordered), ('user_id', '=', self.env.user.id)]))
+    new_until = fields.Date('New Until')
+    favorite_user_ids = fields.Many2many('res.users', 'lunch_product_favorite_user_rel', 'product_id', 'user_id')

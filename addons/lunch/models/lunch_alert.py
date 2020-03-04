@@ -1,115 +1,119 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
-
-import math
 import pytz
 
-from datetime import datetime, time
-
 from odoo import api, fields, models
-
 from odoo.osv import expression
-from odoo.tools import float_round
 
+from .lunch_supplier import float_to_time
+from datetime import datetime, timedelta
+
+from odoo.addons.base.models.res_partner import _tz_get
 
 WEEKDAY_TO_NAME = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-
-def float_to_time(hours, tz=None):
-    """ Convert a number of hours into a time object. """
-    if hours == 24.0:
-        return time.max
-    fractional, integral = math.modf(hours)
-    res = time(int(integral), int(float_round(60 * fractional, precision_digits=0)), 0)
-    if tz:
-        res = res.replace(tzinfo=pytz.timezone(tz))
-    return res
-
-def time_to_float(t):
-    return float_round(t.hour + t.minute/60 + t.second/3600, precision_digits=2)
-
 
 class LunchAlert(models.Model):
     """ Alerts to display during a lunch order. An alert can be specific to a
     given day, weekly or daily. The alert is displayed from start to end hour. """
     _name = 'lunch.alert'
     _description = 'Lunch Alert'
-    _rec_name = 'message'
+    _order = 'write_date desc, id'
 
-    message = fields.Text('Message', required=True)
+    name = fields.Char('Alert Name', required=True, translate=True)
+    message = fields.Html('Message', required=True, translate=True)
 
-    recurrency = fields.Selection([('once', 'Specific Day'), ('reccurent', 'Reccurent')], 'Recurrency', default='once')
-    recurrency_from = fields.Float('From', default=7)
-    recurrency_to = fields.Float('To', default=23)
-    recurrency_date = fields.Date('Day', default=fields.Date.today())
-    recurrency_date_from = fields.Datetime('from', compute='_compute_recurrency_date_from', store=True)
-    recurrency_date_to = fields.Datetime('to', compute='_compute_recurrency_date_to', store=True)
-    recurrency_monday = fields.Boolean('Monday')
-    recurrency_tuesday = fields.Boolean('Tuesday')
-    recurrency_wednesday = fields.Boolean('Wednesday')
-    recurrency_thursday = fields.Boolean('Thursday')
-    recurrency_friday = fields.Boolean('Friday')
-    recurrency_saturday = fields.Boolean('Saturday')
-    recurrency_sunday = fields.Boolean('Sunday')
+    mode = fields.Selection([
+        ('alert', 'Alert in app'),
+        ('chat', 'Chat notification')], string='Display', default='alert')
+    recipients = fields.Selection([
+        ('everyone', 'Everyone'),
+        ('last_week', 'Employee who ordered last week'),
+        ('last_month', 'Employee who ordered last month'),
+        ('last_year', 'Employee who ordered last year')], string='Recipients', default='everyone')
+    notification_time = fields.Float(default=10.0, string='Notification Time')
+    notification_moment = fields.Selection([
+        ('am', 'AM'),
+        ('pm', 'PM')], default='am', required=True)
+    tz = fields.Selection(_tz_get, string='Timezone', required=True, default=lambda self: self.env.user.tz or 'UTC')
 
-    available_today = fields.Boolean('This is True when if the supplier is available today',
+    until = fields.Date('Show Until')
+    recurrency_monday = fields.Boolean('Monday', default=True)
+    recurrency_tuesday = fields.Boolean('Tuesday', default=True)
+    recurrency_wednesday = fields.Boolean('Wednesday', default=True)
+    recurrency_thursday = fields.Boolean('Thursday', default=True)
+    recurrency_friday = fields.Boolean('Friday', default=True)
+    recurrency_saturday = fields.Boolean('Saturday', default=True)
+    recurrency_sunday = fields.Boolean('Sunday', default=True)
+
+    available_today = fields.Boolean('Is Displayed Today',
                                      compute='_compute_available_today', search='_search_available_today')
 
-    @api.depends('recurrency_date', 'recurrency_from')
-    def _compute_recurrency_date_from(self):
-        for alert in self:
-            if alert.recurrency_date and alert.recurrency_from:
-                alert.recurrency_date_from = datetime.combine(alert.recurrency_date, float_to_time(alert.recurrency_from))
+    active = fields.Boolean('Active', default=True)
 
-    @api.depends('recurrency_date', 'recurrency_to')
-    def _compute_recurrency_date_to(self):
-        for alert in self:
-            if alert.recurrency_date and alert.recurrency_to:
-                alert.recurrency_date_to = datetime.combine(alert.recurrency_date, float_to_time(alert.recurrency_to))
+    location_ids = fields.Many2many('lunch.location', string='Location')
 
-    @api.depends('recurrency', 'recurrency_date', 'recurrency_from', 'recurrency_to', 'recurrency_monday',
-                 'recurrency_tuesday', 'recurrency_wednesday', 'recurrency_thursday',
-                 'recurrency_friday', 'recurrency_saturday', 'recurrency_sunday')
+    _sql_constraints = [
+        ('notification_time_range',
+            'CHECK(notification_time >= 0 and notification_time <= 12)',
+            'Notification time must be between 0 and 12')
+    ]
+
+    @api.depends('recurrency_monday', 'recurrency_tuesday', 'recurrency_wednesday',
+                 'recurrency_thursday', 'recurrency_friday', 'recurrency_saturday',
+                 'recurrency_sunday')
     def _compute_available_today(self):
-        now = fields.Datetime.now()
+        today = fields.Date.context_today(self)
+        fieldname = 'recurrency_%s' % (WEEKDAY_TO_NAME[today.weekday()])
 
         for alert in self:
-            time_from = float_to_time(alert.recurrency_from)
-            time_to = float_to_time(alert.recurrency_to)
-
-            if alert.recurrency == 'once':
-                alert.available_today = (alert.recurrency_date_from <= now <= alert.recurrency_date_to)
-            else:
-                fieldname = 'recurrency_%s' % (WEEKDAY_TO_NAME[now.weekday()])
-                alert.available_today = alert[fieldname] and (time_from <= now.time() <= time_to)
+            alert.available_today = alert.until > today if alert.until else True and alert[fieldname]
 
     def _search_available_today(self, operator, value):
         if (not operator in ['=', '!=']) or (not value in [True, False]):
             return []
 
         searching_for_true = (operator == '=' and value) or (operator == '!=' and not value)
-        now = fields.Datetime.now()
-        float_now = time_to_float(now.time())
-        fieldname = 'recurrency_%s' % (WEEKDAY_TO_NAME[now.weekday()])
+        today = fields.Date.context_today(self)
+        fieldname = 'recurrency_%s' % (WEEKDAY_TO_NAME[today.weekday()])
 
-        if searching_for_true:
-            specific = expression.AND([
-                [('recurrency', '=', 'once')],
-                [('recurrency_date_from', '<=', now)],
-                [('recurrency_date_to', '>=', now)]
-            ])
-        else:
-            specific = expression.AND([
-                [('recurrency', '=', 'once')],
-                expression.OR([
-                    [('recurrency_date_from', '>=', now)],
-                    [('recurrency_date_to', '<=', now)]
-                ])
-            ])
-
-        recurrence = expression.AND([
+        return expression.AND([
             [(fieldname, operator, value)],
-            [('recurrency_from', '<=' if searching_for_true else '>=', float_now)],
-            [('recurrency_to', '>=' if searching_for_true else '<=', float_now)]
+            expression.OR([
+                [('until', '=', False)],
+                [('until', '>' if searching_for_true else '<', today)],
+            ])
         ])
 
-        return expression.OR([specific, recurrence])
+    def _notify_chat(self):
+        records = self.search([('mode', '=', 'chat'), ('active', '=', True)])
+
+        today = fields.Date.today()
+        now = fields.Datetime.now()
+
+        for alert in records:
+            notification_to = now.astimezone(pytz.timezone(alert.tz)).replace(second=0, microsecond=0, tzinfo=None)
+            notification_from = notification_to - timedelta(minutes=5)
+            send_at = datetime.combine(fields.Date.today(),
+                float_to_time(alert.notification_time, alert.notification_moment))
+
+            if alert.available_today and send_at > notification_from and send_at <= notification_to:
+                order_domain = [('state', '!=', 'cancelled')]
+
+                if alert.location_ids.ids:
+                    order_domain = expression.AND([order_domain, [('user_id.last_lunch_location_id', 'in', alert.location_ids.ids)]])
+
+                if alert.recipients != 'everyone':
+                    weeks = 1
+
+                    if alert.recipients == 'last_month':
+                        weeks = 4
+                    else:  # last_year
+                        weeks = 52
+
+                    delta = timedelta(weeks=weeks)
+                    order_domain = expression.AND([order_domain, [('date', '>=', today - delta)]])
+
+                orders = self.env['lunch.order'].search(order_domain).mapped('user_id')
+                partner_ids = [user.partner_id.id for user in orders]
+                if partner_ids:
+                    self.env['mail.thread'].message_notify(body=alert.message, partner_ids=partner_ids)

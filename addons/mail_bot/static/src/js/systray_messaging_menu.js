@@ -33,7 +33,7 @@ return MessagingMenu.include({
      *
      * @override
      * @private
-     * @returns {$.Promise<Object[]>} resolved with list of previews that are
+     * @returns {Promise<Object[]>} resolved with list of previews that are
      *   compatible with the 'mail.Preview' template.
      */
     _getPreviews: function () {
@@ -56,9 +56,14 @@ return MessagingMenu.include({
      * @param {string} value
      */
     _handleResponseNotificationPermission: function (value) {
-        if (value !== 'granted') {
+        this.call('mailbot_service', 'removeRequest');
+        localStorage.removeItem('odoobot_notification_last_request_time');
+        if (value === 'denied') {
             this.call('bus_service', 'sendNotification', _t('Permission denied'),
                 _t('Odoo will not have the permission to send native notifications on this device.'));
+        }
+        else if (value === 'default') {
+            localStorage.setItem('odoobot_notification_last_request_time', new Date().getTime());
         }
         this._updateCounter();
     },

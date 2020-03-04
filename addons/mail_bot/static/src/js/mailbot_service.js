@@ -4,6 +4,7 @@ odoo.define('mail_bot.MailBotService', function (require) {
 var AbstractService = require('web.AbstractService');
 var core = require('web.core');
 var session = require('web.session');
+var localStorage = require('web.local_storage');
 
 var _t = core._t;
 
@@ -12,15 +13,13 @@ var MailBotService =  AbstractService.extend({
      * @override
      */
     start: function () {
-        var self = this;
+        this._hasRequest = (window.Notification && window.Notification.permission === "default") || false;
+        var lastRequestTime = localStorage.getItem('odoobot_notification_last_request_time');
         if ('odoobot_initialized' in session && ! session.odoobot_initialized) {
-            setTimeout(function () {
-                session.odoobot_initialized = true;
-                self._rpc({
-                    model: 'mail.channel',
-                    method: 'init_odoobot',
-                });
-            }, 2*60*1000);
+            this._showOdoobotTimeout();
+        }
+        else if (lastRequestTime !== null && (new Date().getTime() - parseInt(lastRequestTime) > 7*24*60*60*1000)) {
+            this._showOdoobotTimeout();
         }
     },
 
@@ -60,7 +59,31 @@ var MailBotService =  AbstractService.extend({
      * @returns {boolean}
      */
     isRequestingForNativeNotifications: function () {
-        return window.Notification && window.Notification.permission === "default";
+        return this._hasRequest;
+    },
+    /**
+     * Called when user either accepts or refuses push notifications.
+     */
+    removeRequest: function () {
+        this._hasRequest = false;
+    },
+
+    //--------------------------------------------------------------------------
+    // Private
+    //--------------------------------------------------------------------------
+
+    /**
+     * @private
+     */
+    _showOdoobotTimeout: function () {
+        var self = this;
+        setTimeout(function () {
+            session.odoobot_initialized = true;
+            self._rpc({
+                model: 'mail.channel',
+                method: 'init_odoobot',
+            });
+        }, 2*60*1000);
     },
 });
 

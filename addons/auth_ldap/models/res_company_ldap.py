@@ -167,7 +167,7 @@ class CompanyLDAP(models.Model):
         """
 
         return {
-            'name': ldap_entry[1]['cn'][0],
+            'name': tools.ustr(ldap_entry[1]['cn'][0]),
             'login': login,
             'company_id': conf['company'][0]
         }
@@ -192,7 +192,7 @@ class CompanyLDAP(models.Model):
         elif conf['create_user']:
             _logger.debug("Creating new Odoo user \"%s\" from LDAP" % login)
             values = self._map_ldap_attributes(conf, login, ldap_entry)
-            SudoUser = self.env['res.users'].sudo()
+            SudoUser = self.env['res.users'].sudo().with_context(no_reset_password=True)
             if conf['user']:
                 values['active'] = True
                 return SudoUser.browse(conf['user'][0]).copy(default=values).id

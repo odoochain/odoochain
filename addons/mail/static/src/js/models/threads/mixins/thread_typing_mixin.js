@@ -94,17 +94,17 @@ var ThreadTypingMixin = {
      * Get the text to display when some partners are typing something on the
      * thread:
      *
-     *   - single typing partner:
+     * - single typing partner:
      *
-     *          A is typing...
+     *   A is typing...
      *
-     *   - two typing partners:
+     * - two typing partners:
      *
-     *          A and B are typing...
+     *   A and B are typing...
      *
-     *   - three or more typing partners:
+     * - three or more typing partners:
      *
-     *          A, B and more are typing...
+     *   A, B and more are typing...
      *
      * The choice of the members name for display is not random: it displays
      * the user that have been typing for the longest time. Also, this function
@@ -171,11 +171,15 @@ var ThreadTypingMixin = {
         if (this._isTypingMyselfInfo(params)) {
             return;
         }
+        var partnerID = params.partnerID;
         this._othersTypingTimers.registerTimer({
-            timeoutCallbackArguments: [params.partnerID],
-            timerID: params.partnerID,
+            timeoutCallbackArguments: [partnerID],
+            timerID: partnerID,
         });
-        this._typingPartnerIDs.push(params.partnerID);
+        if (_.contains(this._typingPartnerIDs, partnerID)) {
+            return;
+        }
+        this._typingPartnerIDs.push(partnerID);
         this._warnUpdatedTypingPartners();
     },
     /**
@@ -209,6 +213,9 @@ var ThreadTypingMixin = {
     unregisterTyping: function (params) {
         var partnerID = params.partnerID;
         this._othersTypingTimers.unregisterTimer({ timerID: partnerID });
+        if (!_.contains(this._typingPartnerIDs, partnerID)) {
+            return;
+        }
         this._typingPartnerIDs = _.reject(this._typingPartnerIDs, function (id) {
             return id === partnerID;
         });
@@ -239,11 +246,11 @@ var ThreadTypingMixin = {
      * @private
      * @param {Object} params
      * @param {boolean} params.typing whether we are typing something or not
-     * @returns {$.Promise} resolved if the server is notified, rejected
+     * @returns {Promise} resolved if the server is notified, rejected
      *   otherwise
      */
     _notifyMyselfTyping: function (params) {
-        return $.when();
+        return Promise.resolve();
     },
     /**
      * Warn views that the list of users that are currently typing on this

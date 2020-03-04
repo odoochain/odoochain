@@ -1,3 +1,7 @@
+$o-default-report-font: 'Lato' !default;
+$o-default-report-primary-color: rgb(0, 0, 0) !default;
+$o-default-report-secondary-color: rgb(0, 0, 0) !default;
+
 html, body {
     height: 100%;
     direction: ltr;
@@ -6,6 +10,7 @@ html, body {
 body {
     color: #000 !important;
     word-wrap: break-word;
+    font-family: $o-default-report-font;
 }
 .border-black td, .border-black th {
     border-top: 1px solid black !important;
@@ -43,4 +48,19 @@ body {
 }
 .o_underline {
     text-decoration: underline;
+}
+
+/*Total table*/
+div#total {
+    page-break-inside: avoid;
+    table {
+        tr {
+            &.o_subtotal,
+            &.o_total {
+                td {
+                    border-top: 1px solid black !important;
+                }
+            }
+        }
+    }
 }

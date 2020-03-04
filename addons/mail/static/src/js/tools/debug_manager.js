@@ -1,8 +1,8 @@
-odoo.define('mail.DebugManager', function (require) {
+odoo.define('mail.DebugManager.Backend', function (require) {
 "use strict";
 
 var core = require('web.core');
-var DebugManager = require('web.DebugManager');
+var DebugManager = require('web.DebugManager.Backend');
 
 var _t = core._t;
 /**
@@ -23,6 +23,10 @@ DebugManager.include({
             views: [[false, 'list'], [false, 'form']],
             type: 'ir.actions.act_window',
             domain: [['res_id', '=', selectedIDs[0]], ['model', '=', this._controller.modelName]],
+            context: {
+                default_res_model: this._controller.modelName,
+                default_res_id: selectedIDs[0],
+            },
         });
     },
 });

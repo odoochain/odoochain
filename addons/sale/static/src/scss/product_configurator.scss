@@ -27,10 +27,6 @@
 }
 
 .css_not_available.js_product {
-    > *:nth-child(4) > * {
-        display: none;
-    }
-
     .css_quantity,
     .product_price {
         display: none;
@@ -39,12 +35,20 @@
     .css_not_available_msg {
         display: block;
     }
+
+    .js_add,
+    .oe_price,
+    .oe_default_price,
+    .oe_optional {
+        display: none;
+    }
 }
 
 .css_quantity {
-    max-width: 125px;
+    width: initial; // We don't want the quantity form to be full-width
 
     input[name="add_qty"] {
+        max-width: 50px;
         text-align: center;
     }
 }
@@ -68,7 +72,7 @@ label.css_attribute_color.css_not_available {
 
     .attribute_name {
         padding-bottom: 0.5rem;
-        display: inline-block;
+        display: block;
     }
 
     .radio_input {
@@ -84,14 +88,18 @@ label.css_attribute_color.css_not_available {
 
     .variant_custom_value {
         margin-bottom: 0.7rem;
+
+        &.custom_value_own_line {
+            display: inline-block;
+        }
     }
 
     .custom_value_radio {
         margin: 0.3rem 0rem 0.3rem 1.6rem;
     }
 
-    .variant_custom_value_label {
-        margin: 0.3rem 0rem;
+    select {
+        margin-bottom: 0.5rem;
     }
 }
 
@@ -113,12 +121,7 @@ label.css_attribute_color.css_not_available {
     }
 
     .o_total_row {
-        h5 {
-            padding-top: 0.4rem;
-        }
-        .js_price_total {
-            font-size: 1.5rem;
-        }
+        font-size: 1.2rem;
     }
 }
 
@@ -138,10 +141,6 @@ label.css_attribute_color.css_not_available {
         -moz-appearance: menulist;
         appearance: menulist;
         background-image: none;
-    }
-
-    .remove-optionnal-item, .add-optionnal-item {
-        padding-left: 5px;
     }
 
     .td-product_name {
@@ -215,4 +214,14 @@ label.css_attribute_color.css_not_available {
 .oe_striked_price {
     text-decoration: line-through;
     white-space: nowrap;
+}
+
+.o_list_view {
+    .o_data_row.o_selected_row > .o_data_cell:not(.o_readonly_modifier) {
+        .o_field_widget .o_edit_product_configuration {
+            padding: 0;
+            background-color: inherit;
+            margin-left: 3px;
+        }
+    }
 }

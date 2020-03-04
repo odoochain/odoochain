@@ -35,3 +35,6 @@ Simone Orsi simahawk@gmail.com https://github.com/simahawk
 Patrick Tombez patrick.tombez@camptocamp.com https://github.com/p-tombez
 Julien Coux julien.coux@camptocamp.com https://github.com/jcoux
 Alexandre Saunier alexandre.saunier@camptocamp.com https://github.com/asaunier
+Frédéric Junod frederic.junod@camptocamp.com https://github.com/fredj
+Sébastien Alix sebastien.alix@camptocamp.com https://github.com/sebalix
+Thomas Nowicki thomas.nowicki@camptocamp.com https://github.com/Tonow-c2c
